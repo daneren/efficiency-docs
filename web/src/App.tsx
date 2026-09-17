@@ -5,7 +5,9 @@ type SyncState = 'syncing' | 'synced' | 'error' | 'offline_readonly'
 
 type Task = { id: string; title: string; status?: string; url?: string; due?: string | null }
 
-type View = 'today' | 'docs' | 'search' | 'settings'
+type View = 'today' | 'allTasks' | 'docs' | 'docEdit' | 'search' | 'settings'
+
+type Doc = { id: string; title: string; lastModified?: string }
 
 type HealthInfo = {
   configured: boolean
@@ -42,6 +44,7 @@ function App() {
   const [syncState, setSyncState] = useState<SyncState>('syncing')
   const [syncDetail, setSyncDetail] = useState('')
   const [tasks, setTasks] = useState<Task[]>([])
+  const [allTasks, setAllTasks] = useState<Task[]>([])
   const [searchQ, setSearchQ] = useState('')
   const [pingMsg, setPingMsg] = useState('')
   const [setupSteps, setSetupSteps] = useState<string[]>([])
@@ -52,6 +55,14 @@ function App() {
     docDb: false,
   })
   const [warning, setWarning] = useState('')
+  const [currentDocId, setCurrentDocId] = useState<string | null>(null)
+  const [docs, setDocs] = useState<Doc[]>([
+    { id: 'doc-1', title: '产品路线图', lastModified: '2026-09-15' },
+    { id: 'doc-2', title: '技术文档模板', lastModified: '2026-09-14' },
+    { id: 'doc-3', title: '会议纪要 - Q3回顾', lastModified: '2026-09-10' },
+  ])
+  const [docTitle, setDocTitle] = useState('')
+  const [docBody, setDocBody] = useState('')
 
   const writeDisabled = syncState === 'offline_readonly' || syncState === 'syncing'
 
@@ -150,9 +161,48 @@ function App() {
     }
   }, [])
 
+  const loadAllTasks = useCallback(async () => {
+    try {
+      const res = await fetch('/api/tasks/all')
+      const data = await res.json()
+      if (isSyncState(data.syncState)) {
+        // Don't override main sync state, just use the data
+      }
+      if (Array.isArray(data.tasks)) {
+        setAllTasks(data.tasks)
+      }
+    } catch (e) {
+      // Fallback: use today's tasks as placeholder
+      setAllTasks(tasks)
+    }
+  }, [tasks])
+
+  const openDoc = useCallback((docId: string) => {
+    const doc = docs.find((d) => d.id === docId)
+    if (doc) {
+      setCurrentDocId(docId)
+      setDocTitle(doc.title)
+      // Stub body - in real implementation would fetch from API
+      setDocBody('文档内容占位。实际应从 /api/docs/:id 读取 Notion 页面内容。')
+      setView('docEdit')
+    }
+  }, [docs])
+
+  const saveDoc = useCallback(async () => {
+    // Stub - would call /api/docs/:id PUT in real implementation
+    console.log('Save doc:', currentDocId, docTitle, docBody)
+    alert('文档保存功能占位（需后端 /api/docs/:id PUT 端点）')
+  }, [currentDocId, docTitle, docBody])
+
   useEffect(() => {
     void refresh()
   }, [refresh])
+
+  useEffect(() => {
+    if (view === 'allTasks') {
+      void loadAllTasks()
+    }
+  }, [view, loadAllTasks])
 
   const filtered = tasks.filter((t) =>
     !searchQ ? true : (t.title || '').toLowerCase().includes(searchQ.toLowerCase()),
@@ -170,6 +220,7 @@ function App() {
           {(
             [
               ['today', '今日清单'],
+              ['allTasks', '全部任务'],
               ['docs', '文档库'],
               ['search', '搜索'],
               ['settings', '设置'],
@@ -276,15 +327,185 @@ function App() {
           </section>
         )}
 
+        {view === 'allTasks' && (
+          <section>
+            <header className="page-h">
+              <div>
+                <h1>全部任务</h1>
+                <p className="muted">所有未完成任务（不限日期） · Notion Task DB</p>
+              </div>
+            </header>
+
+            {syncState === 'error' && (
+              <div className="banner error" role="alert">
+                <div>
+                  <strong>同步失败</strong>
+                  <div>显示今日任务占位数据</div>
+                </div>
+              </div>
+            )}
+
+            {syncState === 'offline_readonly' && (
+              <div className="banner warn" role="status">
+                离线模式 · 显示缓存数据
+              </div>
+            )}
+
+            {syncState === 'syncing' && (
+              <div className="banner info" role="status">
+                {SYNC_HINT.syncing}
+              </div>
+            )}
+
+            <ul className="task-list" data-write-disabled={writeDisabled ? '1' : '0'}>
+              {allTasks.length === 0 && (
+                <li className="empty">暂无未完成任务</li>
+              )}
+              {allTasks.map((t) => (
+                <li key={t.id}>
+                  <span className="title">
+                    {t.url ? (
+                      <a href={t.url} target="_blank" rel="noreferrer">
+                        {t.title}
+                      </a>
+                    ) : (
+                      t.title
+                    )}
+                  </span>
+                  {t.status ? <span className="tag">{t.status}</span> : null}
+                  {t.due ? <span className="tag">{t.due}</span> : null}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {view === 'docs' && (
           <section>
             <header className="page-h">
               <div>
                 <h1>文档库</h1>
-                <p className="muted">骨架占位 · M3 接根页子页 / Doc DB</p>
+                <p className="muted">Mock 列表 · 需后端 /api/docs 端点</p>
               </div>
             </header>
-            <div className="placeholder">文档树将按 PRD Doc 映射拉取</div>
+            {syncState === 'error' && (
+              <div className="banner error" role="alert">
+                文档同步失败。当前为本地占位数据。
+              </div>
+            )}
+            {syncState === 'offline_readonly' && (
+              <div className="banner warn" role="status">
+                离线模式。显示本地占位文档列表。
+              </div>
+            )}
+            <ul className="task-list">
+              {docs.map((doc) => (
+                <li key={doc.id}>
+                  <span className="title">
+                    <button
+                      type="button"
+                      className="linkish"
+                      onClick={() => openDoc(doc.id)}
+                      style={{ fontSize: '0.95rem' }}
+                    >
+                      {doc.title}
+                    </button>
+                  </span>
+                  {doc.lastModified && (
+                    <span className="tag">{doc.lastModified}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {view === 'docEdit' && currentDocId && (
+          <section>
+            <header className="page-h">
+              <div>
+                <h1>编辑文档</h1>
+                <p className="muted">编辑占位 · 需后端 /api/docs/:id GET/PUT</p>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setView('docs')}
+                  style={{ background: 'var(--border-strong)' }}
+                >
+                  返回
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => void saveDoc()}
+                  disabled={writeDisabled}
+                >
+                  保存
+                </button>
+              </div>
+            </header>
+
+            {syncState === 'error' && (
+              <div className="banner error" role="alert">
+                同步失败。可继续编辑，本地草稿已保留。
+              </div>
+            )}
+
+            {syncState === 'offline_readonly' && (
+              <div className="banner warn" role="status">
+                离线只读。恢复网络后可编辑。
+              </div>
+            )}
+
+            {syncState === 'syncing' && (
+              <div className="banner info" role="status">
+                同步中…
+              </div>
+            )}
+
+            <div style={{ marginBottom: '1rem' }}>
+              <input
+                className="search"
+                style={{ maxWidth: '100%', marginBottom: '0.75rem' }}
+                placeholder="文档标题"
+                value={docTitle}
+                onChange={(e) => setDocTitle(e.target.value)}
+                disabled={writeDisabled}
+              />
+              <textarea
+                style={{
+                  width: '100%',
+                  minHeight: '400px',
+                  padding: '0.75rem 1rem',
+                  border: '1px solid var(--border-strong)',
+                  borderRadius: 'var(--radius-sm)',
+                  font: 'inherit',
+                  fontSize: '0.95rem',
+                  background: 'var(--surface)',
+                  color: 'var(--text)',
+                  lineHeight: '1.6',
+                  resize: 'vertical',
+                }}
+                placeholder="文档正文（Markdown 或富文本占位）"
+                value={docBody}
+                onChange={(e) => setDocBody(e.target.value)}
+                disabled={writeDisabled}
+              />
+            </div>
+
+            <div className="banner info" style={{ marginTop: '1rem' }}>
+              <div>
+                <strong>占位说明</strong>
+                <div>
+                  • 实际应通过 GET /api/docs/:id 读取 Notion 页面
+                  <br />
+                  • 保存应调用 PUT /api/docs/:id 更新页面内容
+                  <br />• 同步状态芯片应与任务视图保持一致
+                </div>
+              </div>
+            </div>
           </section>
         )}
 
@@ -293,12 +514,17 @@ function App() {
             <header className="page-h">
               <div>
                 <h1>搜索</h1>
-                <p className="muted">本地过滤占位；全文搜索后续</p>
+                <p className="muted">
+                  <strong>本地占位</strong> · 仅过滤已加载任务标题；全文搜索待后续实现
+                </p>
               </div>
             </header>
+            <div className="banner warn" role="status" style={{ marginBottom: '1rem' }}>
+              当前为<strong>本地占位</strong>搜索，仅匹配今日任务标题。完整搜索功能需后端支持。
+            </div>
             <input
               className="search"
-              placeholder="搜任务标题"
+              placeholder="搜任务标题（本地过滤）"
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
               // offline_readonly 允许浏览/搜索缓存

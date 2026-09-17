@@ -277,6 +277,63 @@ app.get("/api/tasks/today", async (req, res) => {
   }
 });
 
+/** All tasks: fetch all non-done tasks regardless of date */
+app.get("/api/tasks/all", async (req, res) => {
+  const notion = getNotion();
+  if (!notion) {
+    return res.status(503).json(
+      applyForce(req, {
+        ok: false,
+        syncState: "error",
+        tasks: [],
+        error: "NOTION_TOKEN missing",
+      })
+    );
+  }
+  const dbId = process.env.NOTION_TASK_DB_ID;
+  if (!dbId) {
+    return res.status(503).json(
+      applyForce(req, {
+        ok: false,
+        syncState: "error",
+        tasks: [],
+        error: "NOTION_TASK_DB_ID missing",
+      })
+    );
+  }
+
+  try {
+    const q = await notion.databases.query({
+      database_id: dbId.replace(/-/g, ""),
+      page_size: 100,
+    });
+    const tasks = q.results
+      .filter((page) => {
+        const props = page.properties || {};
+        const status = extractStatus(props);
+        return !isDoneStatus(status);
+      })
+      .map(mapTask);
+    res.json(
+      applyForce(req, {
+        ok: true,
+        syncState: "synced",
+        tasks,
+      })
+    );
+  } catch (err) {
+    const syncState = failureSyncState(err);
+    res.status(syncState === "offline_readonly" ? 503 : 502).json(
+      applyForce(req, {
+        ok: false,
+        syncState,
+        tasks: [],
+        error: err?.message || String(err),
+      })
+    );
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`[api] http://localhost:${PORT}`);
   console.log(
