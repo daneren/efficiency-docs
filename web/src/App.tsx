@@ -460,7 +460,7 @@ function App() {
             <header className="page-h">
               <div>
                 <h1>编辑文档</h1>
-                <p className="muted">编辑占位 · 需后端 /api/docs/:id GET/PUT</p>
+                <p className="muted">编辑占位 · 需后端接口</p>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button
@@ -548,19 +548,18 @@ function App() {
               <div>
                 <h1>搜索</h1>
                 <p className="muted">
-                  <strong>本地占位</strong> · 仅过滤已加载任务标题；全文搜索待后续实现
+                  <strong>本地占位</strong> · 仅过滤已加载任务；全文搜索待实现
                 </p>
               </div>
             </header>
             <div className="banner warn" role="status" style={{ marginBottom: '1rem' }}>
-              当前为<strong>本地占位</strong>搜索，仅匹配今日任务标题。完整搜索功能需后端支持。
+              当前为<strong>本地占位</strong>搜索，仅匹配今日任务标题。
             </div>
             <input
               className="search"
               placeholder="搜任务标题（本地过滤）"
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
-              // offline_readonly 允许浏览/搜索缓存
             />
             <ul className="task-list">
               {filtered.length === 0 && <li className="empty">无匹配</li>}
