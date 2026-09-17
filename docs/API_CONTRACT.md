@@ -42,6 +42,22 @@
   - `due` 为 Notion date.start（可空）
 - **502** API 业务错 → `error`；**503** 网络 → `offline_readonly`；均 `tasks:[]`
 
+### `GET /api/tasks/all`
+
+- **503** 配置缺失：`{ ok:false, syncState:"error", tasks:[], error }`
+  - Token 缺失：`error:"NOTION_TOKEN missing"`
+  - DB ID 缺失：`error:"NOTION_TASK_DB_ID missing"`
+- **200** `{ ok:true, syncState:"synced", tasks:[{id,title,status,url,due}] }`
+  - 任务数组含所有非完成任务（**无日期过滤**）
+  - 同 `/api/tasks/today` 形状：`{id,title,status,url,due}`
+  - `due` 为 Notion date.start（可空）
+- **502** API 业务错 → `error`；**503** 网络 → `offline_readonly`；均 `tasks:[]`
+
+#### 全任务过滤规则
+
+- 状态为 done / 完成 / 已完成 / complete / completed → **排除**
+- 其余任务（无论 due 日期）→ **纳入**
+
 ## 今日清单过滤规则
 
 ### Doc 存根端点（A5 骨架验收）
@@ -68,7 +84,7 @@
 
 ---
 
-## 今日清单过滤规则（原）
+## 今日清单过滤规则（`/api/tasks/today`）
 
 1. 状态为 done / 完成 / 已完成 / complete / completed → **排除**
 2. 日期属性名优先：`Due` / `due` / `Date` / `date` / `日期` / `截止`，否则取第一个 `date` 属性
