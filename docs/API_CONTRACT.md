@@ -44,6 +44,32 @@
 
 ## 今日清单过滤规则
 
+### Doc 存根端点（A5 骨架验收）
+
+**说明：** `/api/docs` 与 `/api/docs/:id` 当前返回硬编码存根数据，用于前端骨架开发。真实 Notion Doc 根页/DB 读取与 blocks→Markdown 转换将在后续实现。
+
+#### `GET /api/docs`
+
+- **200** `{ ok:true, syncState:"synced", stub:true, docs:[{id,title,updatedAt}] }`
+  - `docs` 数组含 2–3 条示例文档（id / title / updatedAt）
+  - `stub:true` 标识为存根；前端据此显示「存根数据」提示
+  - `updatedAt` 为 ISO 8601 时间戳
+  - 仍支持 `forceSyncState` 钩子
+
+#### `GET /api/docs/:id`
+
+- **200** `{ ok:true, syncState:"synced", stub:true, id, title, updatedAt, bodyMarkdown }`
+  - 已知 id（存根列表中之一）时返回详情
+  - `bodyMarkdown` 为 Markdown 格式正文示例
+  - 仍支持 `forceSyncState` 钩子
+- **404** `{ ok:false, syncState:"error", stub:true, error:"doc not found" }`
+  - 未知 id 时返回 404
+  - 仍支持 `forceSyncState`（可测四态芯片）
+
+---
+
+## 今日清单过滤规则（原）
+
 1. 状态为 done / 完成 / 已完成 / complete / completed → **排除**
 2. 日期属性名优先：`Due` / `due` / `Date` / `date` / `日期` / `截止`，否则取第一个 `date` 属性
 3. 有 due：`due` 日期（上海日历）**≤ 今天**（含今日与过期）→ **纳入**
