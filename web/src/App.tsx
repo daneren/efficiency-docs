@@ -7,7 +7,8 @@ type Task = { id: string; title: string; status?: string; url?: string; due?: st
 
 type View = 'today' | 'allTasks' | 'docs' | 'docEdit' | 'search' | 'settings'
 
-type Doc = { id: string; title: string; lastModified?: string }
+type Doc = { id: string; title: string; updatedAt: string }
+type DocDetail = { id: string; title: string; updatedAt: string; bodyMarkdown: string }
 
 type HealthInfo = {
   configured: boolean
@@ -56,13 +57,16 @@ function App() {
   })
   const [warning, setWarning] = useState('')
   const [currentDocId, setCurrentDocId] = useState<string | null>(null)
-  const [docs, setDocs] = useState<Doc[]>([
-    { id: 'doc-1', title: '产品路线图', lastModified: '2026-09-15' },
-    { id: 'doc-2', title: '技术文档模板', lastModified: '2026-09-14' },
-    { id: 'doc-3', title: '会议纪要 - Q3回顾', lastModified: '2026-09-10' },
+  
+  // Stub doc data - will be replaced by /api/docs and /api/docs/:id
+  const [docs] = useState<Doc[]>([
+    { id: 'doc-1', title: '产品路线图', updatedAt: '2026-09-15' },
+    { id: 'doc-2', title: '技术文档模板', updatedAt: '2026-09-14' },
+    { id: 'doc-3', title: '会议纪要 - Q3回顾', updatedAt: '2026-09-10' },
   ])
-  const [docTitle, setDocTitle] = useState('')
-  const [docBody, setDocBody] = useState('')
+  
+  // Current doc being edited
+  const [editingDoc, setEditingDoc] = useState<DocDetail | null>(null)
 
   const writeDisabled = syncState === 'offline_readonly' || syncState === 'syncing'
 
@@ -181,18 +185,35 @@ function App() {
     const doc = docs.find((d) => d.id === docId)
     if (doc) {
       setCurrentDocId(docId)
-      setDocTitle(doc.title)
-      // Stub body - in real implementation would fetch from API
-      setDocBody('文档内容占位。实际应从 /api/docs/:id 读取 Notion 页面内容。')
+      // Stub fetch - later: GET /api/docs/:id
+      const stubDetail: DocDetail = {
+        ...doc,
+        bodyMarkdown: `# ${doc.title}
+
+## 占位内容
+
+这是文档的占位 Markdown 内容。
+
+实际应从后端 **GET /api/docs/:id** 读取：
+- 返回 \`{ id, title, updatedAt, bodyMarkdown }\`
+- 支持四态 syncState (syncing|synced|error|offline_readonly)
+
+### 待实现
+- [ ] 后端 Doc API 端点
+- [ ] 真实 Notion 页面内容同步
+- [ ] 保存功能（PUT /api/docs/:id）`,
+      }
+      setEditingDoc(stubDetail)
       setView('docEdit')
     }
   }, [docs])
 
   const saveDoc = useCallback(async () => {
-    // Stub - would call /api/docs/:id PUT in real implementation
-    console.log('Save doc:', currentDocId, docTitle, docBody)
-    alert('文档保存功能占位（需后端 /api/docs/:id PUT 端点）')
-  }, [currentDocId, docTitle, docBody])
+    if (!editingDoc) return
+    // Stub save - later: PUT /api/docs/:id { title, bodyMarkdown }
+    console.log('Save doc:', editingDoc)
+    alert('文档保存功能占位（需后端 PUT /api/docs/:id 端点）')
+  }, [editingDoc])
 
   useEffect(() => {
     void refresh()
@@ -446,8 +467,8 @@ function App() {
                       {doc.title}
                     </button>
                   </span>
-                  {doc.lastModified && (
-                    <span className="tag">{doc.lastModified}</span>
+                  {doc.updatedAt && (
+                    <span className="tag">{doc.updatedAt}</span>
                   )}
                 </li>
               ))}
@@ -455,18 +476,22 @@ function App() {
           </section>
         )}
 
-        {view === 'docEdit' && currentDocId && (
+        {view === 'docEdit' && editingDoc && (
           <section>
             <header className="page-h">
               <div>
                 <h1>编辑文档</h1>
-                <p className="muted">编辑占位 · 需后端接口</p>
+                <p className="muted">本地占位编辑 · 需后端接口</p>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button
                   type="button"
                   className="btn"
-                  onClick={() => setView('docs')}
+                  onClick={() => {
+                    setView('docs')
+                    setEditingDoc(null)
+                    setCurrentDocId(null)
+                  }}
                   style={{ background: 'var(--border-strong)' }}
                 >
                   返回
@@ -505,8 +530,10 @@ function App() {
                 className="search"
                 style={{ maxWidth: '100%', marginBottom: '0.75rem' }}
                 placeholder="文档标题"
-                value={docTitle}
-                onChange={(e) => setDocTitle(e.target.value)}
+                value={editingDoc.title}
+                onChange={(e) =>
+                  setEditingDoc({ ...editingDoc, title: e.target.value })
+                }
                 disabled={writeDisabled}
               />
               <textarea
@@ -523,9 +550,11 @@ function App() {
                   lineHeight: '1.6',
                   resize: 'vertical',
                 }}
-                placeholder="文档正文（Markdown 或富文本占位）"
-                value={docBody}
-                onChange={(e) => setDocBody(e.target.value)}
+                placeholder="文档正文 (Markdown)"
+                value={editingDoc.bodyMarkdown}
+                onChange={(e) =>
+                  setEditingDoc({ ...editingDoc, bodyMarkdown: e.target.value })
+                }
                 disabled={writeDisabled}
               />
             </div>
@@ -534,8 +563,10 @@ function App() {
               <div>
                 <strong>占位说明</strong>
                 <div>
-                  • 实际应通过后端接口读取和保存 Notion 页面
-                  <br />• 同步状态芯片与任务视图保持一致
+                  • 当前为本地编辑占位（不会保存）
+                  <br />• 后端 GET /api/docs/:id 将返回 {'{'}id, title, updatedAt, bodyMarkdown{'}'}
+                  <br />• 保存调用 PUT /api/docs/:id {'{'}title, bodyMarkdown{'}'}
+                  <br />• 支持四态 syncState (与任务视图一致)
                 </div>
               </div>
             </div>
