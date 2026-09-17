@@ -1,0 +1,31 @@
+/* UI_BRIEF_v1 tokens — efficiency-docs */
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --sidebar: #12151a;
+  --sidebar-text: #e8ecf2;
+  --sidebar-muted: #9aa3b2;
+  --text: #141820;
+  --text-muted: #5c6573;
+  --border: rgba(20, 24, 32, 0.08);
+  --border-strong: rgba(20, 24, 32, 0.14);
+  --accent: #2a9d8f;
+  --accent-hover: #238b7e;
+  --accent-soft: rgba(42, 157, 143, 0.12);
+  --accent-on: #ffffff;
+  --ok: #0f766e;
+  --ok-soft: #ccfbf1;
+  --warn: #b45309;
+  --warn-soft: #fef3c7;
+  --danger: #b91c1c;
+  --danger-soft: #fef2f2;
+  --focus: #2a9d8f;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --sidebar-width: 220px;
+  --row-h: 46px;
+  --font: Inter, ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Noto Sans SC", "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --shadow-soft: 0 1px 2px rgba(20, 24, 32, 0.04);
+  --motion: 120ms ease;
+}
