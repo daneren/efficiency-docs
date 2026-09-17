@@ -272,7 +272,7 @@ function App() {
               <div className="banner error" role="alert">
                 <div>
                   <strong>同步失败</strong>
-                  <div>{syncDetail || '请检查 Token / Task DB'}</div>
+                  <div>{syncDetail || '请检查配置'}</div>
                 </div>
                 <button type="button" className="btn" onClick={() => void refresh()}>
                   重试
@@ -299,6 +299,16 @@ function App() {
             )}
 
             <ul className="task-list" data-write-disabled={writeDisabled ? '1' : '0'}>
+              {syncState === 'syncing' && tasks.length === 0 && (
+                <>
+                  {[1, 2, 3].map((i) => (
+                    <li key={`skeleton-${i}`} className="skeleton">
+                      <span className="skeleton-line skeleton-title"></span>
+                      <span className="skeleton-line skeleton-tag"></span>
+                    </li>
+                  ))}
+                </>
+              )}
               {tasks.length === 0 && syncState === 'synced' && (
                 <li className="empty">暂无今日/过期未完成任务（或 Due 属性未映射）</li>
               )}
@@ -358,7 +368,17 @@ function App() {
             )}
 
             <ul className="task-list" data-write-disabled={writeDisabled ? '1' : '0'}>
-              {allTasks.length === 0 && (
+              {syncState === 'syncing' && allTasks.length === 0 && (
+                <>
+                  {[1, 2, 3, 4].map((i) => (
+                    <li key={`skeleton-${i}`} className="skeleton">
+                      <span className="skeleton-line skeleton-title"></span>
+                      <span className="skeleton-line skeleton-tag"></span>
+                    </li>
+                  ))}
+                </>
+              )}
+              {allTasks.length === 0 && syncState !== 'syncing' && (
                 <li className="empty">暂无未完成任务</li>
               )}
               {allTasks.map((t) => (
@@ -398,8 +418,23 @@ function App() {
                 离线模式。显示本地占位文档列表。
               </div>
             )}
+            {syncState === 'syncing' && (
+              <div className="banner info" role="status">
+                {SYNC_HINT.syncing}
+              </div>
+            )}
             <ul className="task-list">
-              {docs.map((doc) => (
+              {syncState === 'syncing' && (
+                <>
+                  {[1, 2, 3].map((i) => (
+                    <li key={`skeleton-${i}`} className="skeleton">
+                      <span className="skeleton-line skeleton-title"></span>
+                      <span className="skeleton-line skeleton-tag"></span>
+                    </li>
+                  ))}
+                </>
+              )}
+              {syncState !== 'syncing' && docs.map((doc) => (
                 <li key={doc.id}>
                   <span className="title">
                     <button
@@ -499,10 +534,8 @@ function App() {
               <div>
                 <strong>占位说明</strong>
                 <div>
-                  • 实际应通过 GET /api/docs/:id 读取 Notion 页面
-                  <br />
-                  • 保存应调用 PUT /api/docs/:id 更新页面内容
-                  <br />• 同步状态芯片应与任务视图保持一致
+                  • 实际应通过后端接口读取和保存 Notion 页面
+                  <br />• 同步状态芯片与任务视图保持一致
                 </div>
               </div>
             </div>
@@ -552,37 +585,32 @@ function App() {
           <section>
             <header className="page-h">
               <div>
-                <h1>设置 · Notion</h1>
-                <p className="muted">Token 只留本机，勿提交、勿推远程。</p>
+                <h1>设置</h1>
+                <p className="muted">Notion 集成配置</p>
               </div>
             </header>
 
             <div className="health-grid">
               <span data-ok={health.configured ? '1' : '0'}>
-                Token {health.configured ? '已识别' : '未配置'}
+                Token {health.configured ? '✓ 已识别' : '× 未配置'}
               </span>
               <span data-ok={health.taskDbId ? '1' : '0'}>
-                Task DB {health.taskDbId ? '已填' : '缺失'}
+                Task DB {health.taskDbId ? '✓ 已填' : '× 缺失'}
               </span>
-              <span data-ok={health.docRoot ? '1' : '0'}>
-                Doc Root {health.docRoot ? '已填' : '可选'}
+              <span data-ok={health.docRoot ? '1' : '0'} data-optional="1">
+                Doc Root {health.docRoot ? '✓ 已填' : '○ 可选'}
               </span>
-              <span data-ok={health.docDb ? '1' : '0'}>
-                Doc DB {health.docDb ? '已填' : '可选'}
+              <span data-ok={health.docDb ? '1' : '0'} data-optional="1">
+                Doc DB {health.docDb ? '✓ 已填' : '○ 可选'}
               </span>
             </div>
 
             <ol className="steps">
-              <li>
-                在项目根复制 <code>.env.local.example</code> → <code>.env.local</code>
-              </li>
-              <li>
-                填入 <code>NOTION_TOKEN</code>、<code>NOTION_TASK_DB_ID</code>
-              </li>
-              <li>把 Integration 邀请进 Task DB（及 Doc）</li>
-              <li>
-                重启 <code>npm run dev</code>，点下方 M1 Ping
-              </li>
+              <li>创建 Notion Integration，复制 token</li>
+              <li>在项目根目录创建配置文件（参考 .env.local.example）</li>
+              <li>填入 Token 和 Task Database ID</li>
+              <li>将 Integration 邀请至 Task Database</li>
+              <li>重启开发服务器，点下方按钮验证</li>
             </ol>
 
             {setupSteps.length > 0 && (
@@ -594,7 +622,7 @@ function App() {
             )}
 
             <button type="button" className="btn" onClick={() => void ping()}>
-              M1：鉴权并读一条
+              验证配置
             </button>
             {pingMsg && <pre className="ping">{pingMsg}</pre>}
           </section>
