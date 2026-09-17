@@ -334,6 +334,64 @@ app.get("/api/tasks/all", async (req, res) => {
   }
 });
 
+/** Stub: list docs (A5 skeleton; no real Notion Doc read yet) */
+const STUB_DOCS = [
+  {
+    id: "doc-001",
+    title: "产品路线图 2026 Q3-Q4",
+    updatedAt: "2026-09-15T08:30:00.000Z",
+  },
+  {
+    id: "doc-002",
+    title: "团队周报模板",
+    updatedAt: "2026-09-10T14:22:00.000Z",
+  },
+  {
+    id: "doc-003",
+    title: "开发规范与代码审查清单",
+    updatedAt: "2026-09-01T10:15:00.000Z",
+  },
+];
+
+app.get("/api/docs", (req, res) => {
+  res.json(
+    applyForce(req, {
+      ok: true,
+      syncState: "synced",
+      stub: true,
+      docs: STUB_DOCS,
+    })
+  );
+});
+
+app.get("/api/docs/:id", (req, res) => {
+  const { id } = req.params;
+  const doc = STUB_DOCS.find((d) => d.id === id);
+
+  if (!doc) {
+    return res.status(404).json(
+      applyForce(req, {
+        ok: false,
+        syncState: "error",
+        stub: true,
+        error: "doc not found",
+      })
+    );
+  }
+
+  res.json(
+    applyForce(req, {
+      ok: true,
+      syncState: "synced",
+      stub: true,
+      id: doc.id,
+      title: doc.title,
+      updatedAt: doc.updatedAt,
+      bodyMarkdown: `# ${doc.title}\n\n这是存根数据。Notion Doc 真实读取将在后续实现。\n\n## 示例章节\n\n- 要点一\n- 要点二\n- 要点三\n\n**注意：** 此内容为前端骨架验收用的硬编码数据。`,
+    })
+  );
+});
+
 app.listen(PORT, () => {
   console.log(`[api] http://localhost:${PORT}`);
   console.log(
