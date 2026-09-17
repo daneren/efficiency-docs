@@ -288,6 +288,12 @@ button.sync-chip.sync-error {
   border-color: color-mix(in srgb, var(--danger) 20%, white);
 }
 
+.health-grid span[data-optional='1'][data-ok='0'] {
+  color: var(--text-muted);
+  background: var(--surface);
+  border-color: var(--border);
+}
+
 .ping {
   margin-top: 1rem;
   background: var(--sidebar);
@@ -314,6 +320,41 @@ button.sync-chip.sync-error {
 
 .btn:hover { background: var(--accent-hover); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.skeleton {
+  opacity: 1;
+  pointer-events: none;
+}
+
+.skeleton-line {
+  display: inline-block;
+  background: linear-gradient(
+    90deg,
+    var(--border) 25%,
+    var(--border-strong) 50%,
+    var(--border) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-title {
+  height: 1rem;
+  width: 60%;
+  max-width: 300px;
+}
+
+.skeleton-tag {
+  height: 0.9rem;
+  width: 60px;
+  margin-left: auto;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 
 @media (max-width: 720px) {
   .app { grid-template-columns: 1fr; }
