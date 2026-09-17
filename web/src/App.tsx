@@ -97,7 +97,7 @@ function App() {
         ]
           .filter(Boolean)
           .join(' + ')
-        setSyncDetail(`未配置 ${missing}（见设置页 / docs/NOTION_SETUP.md）`)
+        setSyncDetail(`未配置 ${missing}（请在设置页填写）`)
         setTasks([])
         return
       }
@@ -464,7 +464,7 @@ function App() {
             <header className="page-h">
               <div>
                 <h1>文档库</h1>
-                <p className="muted">存根数据 · 读取自 /api/docs</p>
+                <p className="muted">浏览和管理 Notion 文档</p>
               </div>
             </header>
             {syncState === 'error' && (
